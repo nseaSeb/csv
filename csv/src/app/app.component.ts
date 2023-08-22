@@ -87,6 +87,8 @@ export class AppComponent {
         if (val) {
             this.keyValue = JSON.parse(val);
         }
+        // console.log('no exponents found', this.noExponents(4.65661287307739e-10));
+        // console.log('no exponents found', this.noExponents(9.935818877444285e23));
     }
 
     inputHandler(e: any) {
@@ -147,8 +149,6 @@ export class AppComponent {
         this.inputHeaders = this.inputDatas.shift() || [];
         this.headers = this.datas.shift() || [];
         this.nbreDeLignes = this.datas.length;
-        console.log('headers', this.headers);
-        console.log('allColonneType', this.allColonneType);
 
         this.addSommation();
         this.patchAllColonnes();
@@ -163,7 +163,6 @@ export class AppComponent {
         }
     }
     autoCorrectEncodage(): void {
-        console.log('autoCorrectEncodage');
         this.onLoader(true);
 
         const selVal = this.encodages.find((item) => item.key === this.encodageSelected);
@@ -174,7 +173,6 @@ export class AppComponent {
                         const bufferData = buffer.Buffer.from(String(this.fileDatas[i][j]).trim());
                         const str = iconvlite.decode(bufferData, selVal.decode);
                         this.inputDatas[i][j] = str;
-                        console.log('decoded by iconvlite : ', str);
                     } catch (error) {
                         console.log('decoded ERROR : ', error);
                     }
@@ -490,6 +488,14 @@ export class AppComponent {
             case 'number':
                 return this.getStringAsNumber(value);
                 break;
+            case 'siren':
+                const siren = String(this.getStringAsNumber(value)).replace('.', '');
+                return this.getStringWithLength(siren, 9).padEnd(9, '0');
+                break;
+            case 'siret':
+                const siret = String(this.getStringAsNumber(value)).replace('.', '');
+                return this.getStringWithLength(siret, 14).padEnd(9, '0');
+                break;
             case 'pays':
                 return this.pays.getIsoFromPays(value);
                 break;
@@ -600,28 +606,56 @@ export class AppComponent {
             return 'false';
         }
     }
+    noExponents(nbre: number): string {
+        var data = String(nbre).split(/[eE]/);
+        if (data.length == 1) return data[0];
+
+        var z = '',
+            sign = nbre < 0 ? '-' : '',
+            str = data[0].replace('.', ''),
+            mag = Number(data[1]) + 1;
+
+        if (mag < 0) {
+            z = sign + '0.';
+            while (mag++) z += '0';
+            return z + str.replace(/^\-/, '');
+        }
+        mag -= str.length;
+        while (mag--) z += '0';
+        return str + z;
+    }
     getStringAsNumber(value: any): any {
         //const retour = value.replace(/^\D+/g, '');
+        console.log('original', value);
 
-        value = String(value);
-        value = value.replace(',', '.');
-        let retour = '0';
-        try {
-            //
-            let num = (value.match(/[\d\.]+/g) as string[]) || ['0'];
+        const numb = Number(value);
+        const exponent = this.noExponents(Number(value));
+        console.log('exponent', exponent);
+        if (!isNaN(Number(exponent))) {
+            console.log('is not nan');
+            return exponent;
+        } else {
+            value = String(value);
+            console.log('string', value);
+            value = value.replace(',', '.');
+            let retour = '0';
+            try {
+                //
+                let num = (value.match(/[\d\.]+/g) as string[]) || ['0'];
 
-            retour = num?.join('') as string;
-            let numberOfDots = retour.split('.').length - 1;
+                retour = num?.join('') as string;
+                let numberOfDots = retour.split('.').length - 1;
 
-            while (numberOfDots > 1) {
-                retour = retour.replace('.', '');
-                numberOfDots--;
+                while (numberOfDots > 1) {
+                    retour = retour.replace('.', '');
+                    numberOfDots--;
+                }
+            } catch (error) {
+                console.error(error, value);
             }
-        } catch (error) {
-            console.error(error, value);
-        }
 
-        return Number(retour) || 0;
+            return Number(retour) || 0;
+        }
     }
     sumAllColonnes(): void {
         for (let j = 0; j < this.datas[0].length; j++) {

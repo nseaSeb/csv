@@ -7,6 +7,7 @@ import { Component, OnInit } from '@angular/core';
 })
 export class AideComponent implements OnInit {
     versions = [
+        { version: '0.8.5', description: `ajout exponentiel sur les champ numériques, ajout options siren / siret` },
         { version: '0.8.4', description: `Correctifs header, tooltip numéro de ligne sous la poubelle` },
         {
             version: '0.8.3',
