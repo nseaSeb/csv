@@ -5,6 +5,7 @@ import { PaysCorrectionService } from './pays-correction.service';
 import languageEncoding from 'detect-file-encoding-and-language';
 import * as iconvlite from 'iconv-lite';
 import * as buffer from 'buffer';
+import { MatchingColumnsService } from './matching-columns.service';
 
 @Component({
     selector: 'app-root',
@@ -13,11 +14,11 @@ import * as buffer from 'buffer';
 })
 export class AppComponent {
     title = 'csv';
-    version = '0.8.4 beta-carotene';
+    version = '0.8.94 beta-carotene';
     about = 'Outil de manipulation / correction de fichiers CSV';
     filename = 'undefined';
     nbreDeLignes = 0;
-    segmentTemp = 100;
+    segmentTemp = 0;
     celluleTemp = '';
     segment: number = 0;
     encodage = 'UTF-8';
@@ -25,9 +26,9 @@ export class AppComponent {
     isNotExecutable = true;
     dateFormat = 'yyyyMMdd';
 
-    datas: any[] = [];
-    fileDatas: any[] = [];
-    inputDatas: any[] = [];
+    datas: any[] = []; //view datas
+    fileDatas: any[] = []; // fichier
+    inputDatas: any[] = []; // buffer
 
     headers: string[] = [];
     inputHeaders: string[] = [];
@@ -55,12 +56,11 @@ export class AppComponent {
     allColonneType: string[] = [];
     sommation: number[] = [];
     encodages = [
-        { key: 'undefined', value: 'Non défini', decode: 'UTF-8' },
+        { key: 'undefined', value: 'Non défini', decode: 'undefined' },
         { key: 'CP1252', value: 'Win CP1252', decode: 'cp1252' },
         { key: 'cp20866', value: 'Win cp20866', decode: 'cp20866' },
         { key: 'UTF-8', value: 'UTF 8', decode: 'utf8' },
         { key: 'UTF-7', value: 'UTF 7', decode: 'utf7' },
-        { key: 'UTF-16LE', value: 'UTF 16 LE', decode: 'utf16le' },
         { key: 'UTF-16', value: 'Unicode UTF 16', decode: 'UTF-16' },
         { key: 'shiftjis', value: 'dbcs encodings', decode: 'shiftjis' },
         { key: 'win1251', value: 'Win 1251', decode: 'win1251' },
@@ -80,19 +80,45 @@ export class AppComponent {
         { key: 'maccenteuro', value: 'maccenteuro', decode: 'maccenteuro' },
         { key: 'maccyrillic', value: 'maccyrillic', decode: 'maccyrillic' },
     ];
-
+    colType = [
+        { value: '', label: 'Non défini' },
+        { value: 'addressName', label: 'Nom Adresse' },
+        { value: 'address1', label: 'Adresse partie 1' },
+        { value: 'zipCode', label: 'Code postal' },
+        { value: 'city', label: 'Ville' },
+        { value: 'pays', label: 'Pays' },
+        { value: 'splitAddress', label: 'Split adresse' },
+        { value: 'increment', label: 'Incrément' },
+        { value: 'number', label: 'Numérique' },
+        { value: 'phone', label: 'Télphone' },
+        { value: 'siren', label: 'Siren' },
+        { value: 'siret', label: 'Siret' },
+        { value: 'txt32', label: 'Texte 32 caractères' },
+        { value: 'txt64', label: 'Texte 64 caractères' },
+        { value: 'txt100', label: 'Texte 100 caractères' },
+        { value: 'txt128', label: 'Texte 128 caractères' },
+        { value: 'txt255', label: 'Texte 255 caractères' },
+        { value: 'tag510', label: 'Smart-tags' },
+        { value: 'ouinon', label: 'Oui ou Non' },
+        { value: 'trueFalse', label: 'True/False' },
+        { value: 'yn', label: 'Y ou N' },
+        { value: 'keyValue', label: 'Key/Value' },
+        { value: 'removeEmpty', label: 'Retire les lignes aux cellules vides' },
+    ];
     @ViewChild('myRefresh') myRefresh: ElementRef | undefined;
-    constructor(private csvParse: CsvParseService, private _csvExport: ExportCsvService, private pays: PaysCorrectionService) {
+    constructor(
+        private csvParse: CsvParseService,
+        private _csvExport: ExportCsvService,
+        private pays: PaysCorrectionService,
+        private matchColumnService: MatchingColumnsService,
+    ) {
         const val = localStorage.getItem('keyValue');
         if (val) {
             this.keyValue = JSON.parse(val);
         }
-        // console.log('no exponents found', this.noExponents(4.65661287307739e-10));
-        // console.log('no exponents found', this.noExponents(9.935818877444285e23));
     }
 
     inputHandler(e: any) {
-        console.log('inputHandler');
         this.onLoader(true);
         this.allColonneType = [];
 
@@ -100,7 +126,6 @@ export class AppComponent {
 
         const file = e.target.files[0];
         try {
-            console.log('file', file);
             languageEncoding(file).then((fileInfo) => {
                 this.encodage = fileInfo.encoding || 'undefined';
                 this.uploadFile(e);
@@ -116,51 +141,53 @@ export class AppComponent {
         const reader = new FileReader();
         if (event.target.files && event.target.files.length) {
             const [file] = event.target.files;
-            reader.readAsBinaryString(file);
+            reader.readAsText(file);
             reader.onload = () => {
                 this.filename = file.name;
                 const content = reader.result || '';
                 this.csvParse.parseCsvFile(content.toString(), this.encodage).then((result) => {
                     this.fileDatas = [...result.data];
-                    this.inputDatas = [];
-                    this.datas = [];
+                    //console.log(this.fileDatas);
+                    // this.inputDatas = [];
+                    // this.datas = [];
                     const selVal = this.encodages.find((item) => item.key === this.encodage);
                     this.initEncodage();
-
                     this.populateBuffers();
                 });
                 this.isNotExecutable = false;
             };
         }
     }
-    populateBuffers() {
+    populateBuffers(matchCol = true) {
         this.onLoader(true);
         this.sommation = [];
         this.headers = [];
         this.datas = [];
         this.inputDatas = [];
         this.inputHeaders = [];
-        //console.log('fileDatas', this.fileDatas);
         this.inputDatas = JSON.parse(JSON.stringify(this.fileDatas));
-        //console.log('inputdata', this.inputDatas);
         this.autoCorrectEncodage();
         this.datas = JSON.parse(JSON.stringify(this.inputDatas));
-        //console.log('datas', this.datas);
         this.inputHeaders = this.inputDatas.shift() || [];
         this.headers = this.datas.shift() || [];
         this.nbreDeLignes = this.datas.length;
 
         this.addSommation();
+        // if (matchCol) this.matchColumns();
         this.patchAllColonnes();
-        this.autoCorrectHeader();
-        this.autoCorrectDatas();
+        // this.autoCorrectHeader();
+        // this.autoCorrectDatas();
         this.onLoader(false);
     }
     initEncodage(): void {
+        if (this.encodage === 'UTF16LE') this.encodage = 'UTF-16';
         const selVal = this.encodages.find((item) => item.key === this.encodage);
         if (selVal) {
             this.encodageSelected = selVal.key;
         }
+    }
+    getColType(index: number): string {
+        return this.colType.find((item) => item.value === this.allColonneType[index])?.label || '';
     }
     autoCorrectEncodage(): void {
         this.onLoader(true);
@@ -184,17 +211,11 @@ export class AppComponent {
     }
 
     changeHeaderByNextLine(): void {
-        // this.headers = this.datas.shift() || [];
-        // this.fileDatas.splice(0, 1);
-        // this.inputDatas.splice(0, 1);
-        // this.nbreDeLignes = this.datas.length;
-        // this.addSommation();
-        // this.autoCorrectHeader();
         this.removeLine(-1);
     }
     removeLine(i: number): void {
         this.fileDatas.splice(i + 1, 1);
-        this.populateBuffers();
+        this.populateBuffers(false);
     }
 
     exportToCSV(): void {
@@ -202,11 +223,13 @@ export class AppComponent {
             const filename = `${this.filename.slice(0, -4)}-UTF8.csv`;
             this._csvExport.exportToCsv(filename, [this.headers, ...this.datas]);
         } else {
-            for (let i: number = 0; 1 < this.datas.length; i += this.segment) {
+            let partition = 0;
+            const baseName = `${this.filename.slice(0, -4)}-UTF8 `;
+            for (let i = 0; 1 < this.datas.length; i += this.segment) {
                 if (this.segment > this.datas.length) this.segment = this.datas.length;
-                const part: number = Number(i) + Number(this.segment - 1);
 
-                const filename = `${this.filename.slice(0, -4)}${i.toString()}-${part.toString()}.csv`;
+                // partition += Number(this.segment - 1);
+                const filename = `${baseName} ${partition}-${(partition += Number(this.segment - 1))}.csv`;
                 const output = [this.headers, ...this.datas.splice(0, this.segment)];
                 this._csvExport.exportToCsv(filename, output);
             }
@@ -218,19 +241,27 @@ export class AppComponent {
             this.allColonneType.push('');
         }
     }
-    autoCorrectHeader(): void {
-        for (let i = 0; i < this.headers.length; i++) {
-            this.headers[i] = this.autoCorrectString(this.headers[i]);
-        }
-    }
-    autoCorrectDatas(): void {
-        for (let i = 0; i < this.datas.length; i++) {
-            for (let j = 0; j < this.datas[i].length; j++) {
-                this.datas[i][j] = this.autoCorrectString(this.datas[i][j]);
-            }
-        }
-        this.onLoader(false);
-    }
+    // matchColumns(): void {
+    //     for (let i = 0; i < this.headers.length; i++) {
+    //         const item = this.matchColumnService.bestColumnMatching(this.headers[i].toLowerCase());
+    //         if (item) {
+    //             this.allColonneType[i] = item.settings;
+    //         }
+    //     }
+    // }
+    // autoCorrectHeader(): void {
+    //     for (let i = 0; i < this.headers.length; i++) {
+    //         this.headers[i] = this.autoCorrectString(this.headers[i]);
+    //     }
+    // }
+    // autoCorrectDatas(): void {
+    //     for (let i = 0; i < this.datas.length; i++) {
+    //         for (let j = 0; j < this.datas[i].length; j++) {
+    //             this.datas[i][j] = this.autoCorrectString(this.datas[i][j]);
+    //         }
+    //     }
+    //     this.onLoader(false);
+    // }
     onLoader(onOff: boolean): void {
         if (onOff) {
             this.isLoaded = false;
@@ -243,28 +274,29 @@ export class AppComponent {
         }
     }
 
-    autoCorrectString(value: string): string {
-        value = this.replaceAll(value, 'Ã©', 'é');
-        value = this.replaceAll(value, 'Â°', '°');
-        value = this.replaceAll(value, 'Ãª', 'ê');
-        value = this.replaceAll(value, 'Ã¨', 'è');
-        value = this.replaceAll(value, `\'`, `'`);
-        value = this.replaceAll(value, `d\``, `d'`);
-        value = this.replaceAll(value, `l\'`, `l'`);
-        value = this.replaceAll(value, `à´`, `ô`);
-        value = this.replaceAll(value, 'Ã', 'à');
-        value = this.replaceAll(value, 'à§', 'ç');
-        value = this.replaceAll(value, 'â', `'`);
-        value = this.replaceAll(value, 'à¹', `ù`);
-        value = this.replaceAll(value, 'à´', `ô`);
-        value = this.replaceAll(value, 'â¬', `€`);
-        value = this.replaceAll(value, `'¦`, `...`);
-        value = this.replaceAll(value, `Â£`, `£`);
-        value = this.replaceAll(value, `Â¥`, `¥`);
-        value = this.replaceAll(value, '\xc3\x8e', `é`);
+    // autoCorrectString(value: string): string {
+    //     value = this.replaceAll(value, 'Ã©', 'é');
+    //     value = this.replaceAll(value, 'Â°', '°');
+    //     value = this.replaceAll(value, 'Ãª', 'ê');
+    //     value = this.replaceAll(value, 'à«', 'ë');
+    //     value = this.replaceAll(value, 'Ã¨', 'è');
+    //     value = this.replaceAll(value, `\'`, `'`);
+    //     value = this.replaceAll(value, `d\``, `d'`);
+    //     value = this.replaceAll(value, `l\'`, `l'`);
+    //     value = this.replaceAll(value, `à´`, `ô`);
+    //     value = this.replaceAll(value, 'Ã', 'à');
+    //     value = this.replaceAll(value, 'à§', 'ç');
+    //     value = this.replaceAll(value, 'â', `'`);
+    //     value = this.replaceAll(value, 'à¹', `ù`);
+    //     value = this.replaceAll(value, 'à´', `ô`);
+    //     value = this.replaceAll(value, 'â¬', `€`);
+    //     value = this.replaceAll(value, `'¦`, `...`);
+    //     value = this.replaceAll(value, `Â£`, `£`);
+    //     value = this.replaceAll(value, `Â¥`, `¥`);
+    //     value = this.replaceAll(value, '\xc3\x8e', `é`);
 
-        return value;
-    }
+    //     return value;
+    // }
 
     replaceAll(string, search, replace) {
         try {
@@ -276,11 +308,14 @@ export class AppComponent {
     openHeader(header: string, index: number): void {
         this.isDialogHeader = true;
         this.selectedIndex = index;
-        this.colonneType = this.allColonneType[index];
+        setTimeout(() => {
+            this.colonneType = this.allColonneType[index];
+        }, 10);
         this.selectedHeader = header;
     }
     headerDialogApply(): void {
         this.headers[this.selectedIndex] = this.selectedHeader;
+        this.inputHeaders[this.selectedIndex] = this.selectedHeader;
         if (this.replaceField) {
             this.onReplace();
         }
@@ -362,64 +397,19 @@ export class AppComponent {
         this.isDialogSegment = false;
     }
     onChangeCell(e: any): void {
-        this.celluleTemp = e.target.value;
+        this.celluleTemp = e.target.value.trim();
     }
     onChangeColonneType(e: any): void {
         this.colonneType = e.target.value;
+        console.log(this.colonneType);
+    }
+    onSelectColonneType(e: any, index: number): void {
+        this.allColonneType[index] = e.target.value;
     }
     onChangeImportType(e: any): void {
         this.importType = e.target.value;
     }
-    getColonneType(colonne: string): string {
-        switch (colonne) {
-            case 'number':
-                return 'Numérique';
-                break;
-            case 'pays':
-                return 'Pays';
-                break;
-            case 'txt32':
-                return 'Txt 32';
-                break;
-            case 'txt64':
-                return 'Txt 64';
-                break;
-            case 'txt1OO':
-                return 'Txt 100';
-                break;
-            case 'txt128':
-                return 'Txt 128';
-                break;
-            case 'txt255':
-                return 'Txt 255';
-                break;
-            case 'tag510':
-                return 'Tag 510';
-                break;
-            case 'phone':
-                return 'Téléphone';
-                break;
-            case 'yn':
-                return 'Y/N';
-                break;
-            case 'ouinon':
-                return 'Oui/non';
-                break;
-            case 'trueFalse':
-                return 'True/false';
-                break;
-            case 'keyValue':
-                return 'Key/value';
-                break;
-            case 'increment':
-                return 'Incrémentation';
-                break;
 
-            default:
-                return 'Non défini';
-                break;
-        }
-    }
     changeColonneType(index: number, e: any): void {
         this.allColonneType[index] = e.target.value;
 
@@ -430,9 +420,11 @@ export class AppComponent {
     patchAllColonnes(): void {
         this.onLoader(true);
         this.count = this.compteur;
+        console.log(this.allColonneType);
+        if (this.allColonneType.includes('splitAddress')) this.prepareSplitAddress();
         for (let i = 0; i < this.datas.length; i++) {
             for (let j = 0; j < this.datas[i].length; j++) {
-                this.datas[i][j] = this.patchColonne(this.inputDatas[i][j], this.allColonneType[j]);
+                this.datas[i][j] = this.patchColonne(this.inputDatas[i][j], this.allColonneType[j], i);
             }
         }
         if (this.allColonneType.findIndex((item) => item === 'phone') !== -1) {
@@ -440,7 +432,25 @@ export class AppComponent {
                 this.patchPhones(i);
             }
         }
-        this.autoCorrectDatas();
+    }
+    prepareSplitAddress(): void {
+        console.log('prepareSplitAddress');
+        if (!this.allColonneType.includes('address1')) {
+            this.addColumn('Adresse partie 1');
+            this.allColonneType.push('address1');
+        }
+        if (!this.allColonneType.includes('zipCode')) {
+            this.addColumn('Code Postal');
+            this.allColonneType.push('zipCode');
+        }
+        if (!this.allColonneType.includes('city')) {
+            this.addColumn('Ville');
+            this.allColonneType.push('city');
+        }
+        if (!this.allColonneType.includes('addressName')) {
+            this.addColumn('Adresse nom');
+            this.allColonneType.push('addressName');
+        }
     }
     // isColPays(): boolean {
     //     return this.allColonneType.findIndex((item) => item === 'pays') === -1;
@@ -483,7 +493,7 @@ export class AppComponent {
             }
         }
     }
-    patchColonne(value: string, type: string): string {
+    patchColonne(value: string, type: string, index: number): string {
         switch (type) {
             case 'number':
                 return this.getStringAsNumber(value);
@@ -530,7 +540,15 @@ export class AppComponent {
                 return this.patchKeyValue(value);
                 break;
             case 'addressName':
-                return this.patchAdressName(value);
+                return this.patchAdressName(value, index);
+                break;
+            case 'splitAddress':
+                this.patchSplitAddress(value, index);
+                return value;
+                break;
+            case 'removeEmpty':
+                this.removeEmptyLineCell(value, index);
+                return value;
                 break;
             case 'increment':
                 return this.pushIncrement(value);
@@ -538,6 +556,37 @@ export class AppComponent {
             default:
                 return value;
                 break;
+        }
+    }
+    patchSplitAddress(value: string, index: number): void {
+        if (value.trim()) {
+            try {
+                const addressArray = this.matchColumnService.splitAdresse(value);
+                if (addressArray[0]) {
+                    this.inputDatas[index][this.allColonneType.indexOf('address1')] = String(addressArray[0]);
+                    this.datas[index][this.allColonneType.indexOf('address1')] = String(addressArray[0]);
+                    this.inputDatas[index][this.allColonneType.indexOf('zipCode')] = String(addressArray[2][0]);
+                    this.datas[index][this.allColonneType.indexOf('zipCode')] = String(addressArray[2][0]);
+                    this.inputDatas[index][this.allColonneType.indexOf('city')] = String(addressArray[1]);
+                    this.datas[index][this.allColonneType.indexOf('city')] = String(addressArray[1]);
+                    const indexName = this.allColonneType.indexOf('addressName');
+                    if (this.inputDatas[index][indexName].length < 1) {
+                        this.inputDatas[index][indexName] = 'Adresse principale';
+                        this.datas[index][indexName] = 'Adresse principale';
+                    }
+                }
+            } catch (error) {
+                console.log(error);
+            }
+        }
+    }
+    removeEmptyLineCell(value: string, index: number): void {
+        if (!value.trim()) {
+            try {
+                this.removeLine(index);
+            } catch (error) {
+                console.log(error);
+            }
         }
     }
     getStringWithLength(value: string, length: number): string {
@@ -565,10 +614,22 @@ export class AppComponent {
             case 'N':
                 retour = 'N';
                 break;
-            case 'No':
+            case 'NO':
                 retour = 'N';
                 break;
             case '0':
+                retour = 'N';
+                break;
+            case 'TRUE':
+                retour = 'Y';
+                break;
+            case 'FALSE':
+                retour = 'N';
+                break;
+            case 'OUI':
+                retour = 'Y';
+                break;
+            case 'NON':
                 retour = 'N';
                 break;
             default:
@@ -585,12 +646,16 @@ export class AppComponent {
             return value;
         }
     }
-    patchAdressName(value: string): string {
+    patchAdressName(value: string, index): string {
+        const city = this.datas[index][this.allColonneType.indexOf('city')];
+        const zipCode = this.datas[index][this.allColonneType.indexOf('zipCode')];
+        const address1 = this.datas[index][this.allColonneType.indexOf('address1')];
         if (value === '') {
-            return 'Adresse principale';
+            city || zipCode || address1 ? (value = 'Adresse principale') : '';
         } else {
-            return value;
+            if (!city || !zipCode || !address1) value = '';
         }
+        return value;
     }
     patchOuiNon(value: string): string {
         if (this.patchYN(value) === 'Y') {
@@ -683,6 +748,7 @@ export class AppComponent {
         this.inputDatas[this.selectedLigneIndex][this.selectedCellIndex] = this.celluleTemp;
         this.isDialogCell = false;
     }
+
     onAddColumnAfter() {
         this.addColumnAt(this.selectedIndex + 1);
         this.addHeaderAt(this.selectedIndex + 1);
@@ -698,10 +764,18 @@ export class AppComponent {
         this.isDialogHeader = false;
     }
     addColumnAt(index: number): void {
-        for (let i = 0; i < this.datas.length; i++) {
+        for (let i = 0; i < this.fileDatas.length; i++) {
             this.fileDatas[i].splice(index, 0, '');
         }
         // this.populateBuffers(); done by add header
+    }
+    addColumn(name: string): void {
+        for (let i = 0; i < this.datas.length; i++) {
+            this.inputDatas[i].splice(this.inputDatas[i].length + 1, 0, '');
+            this.datas[i].splice(this.datas[i].length + 1, 0, '');
+        }
+        this.inputHeaders.splice(this.headers.length + 1, 0, name);
+        this.headers.splice(this.headers.length + 1, 0, name);
     }
     removeColumnAt(index: number): void {
         for (let i = 0; i < this.datas.length; i++) {
@@ -717,8 +791,9 @@ export class AppComponent {
     isEdited(lineIndex: number, cellIndex: number): boolean {
         return this.fileDatas[lineIndex + 1][cellIndex] !== this.datas[lineIndex][cellIndex];
     }
-    getTooltip(lineIndex: number, cellIndex: number): string {
-        return String(this.fileDatas[lineIndex + 1][cellIndex]).trim();
+    getTooltip(lineIndex: number, cellIndex: number, cell: string): string {
+        return `${String(this.fileDatas[lineIndex + 1][cellIndex]).trim()}
+Taille : ${cell.length} caractères.`;
     }
     showHelp(): void {
         this.isHelp = true;

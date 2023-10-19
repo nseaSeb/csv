@@ -1,7 +1,7 @@
 <div class="card-container mt-72">
     <button
         class="card card-small"
-        [disabled]="this.datas.length < 100"
+        [disabled]="this.datas.length < 50"
         (click)="isDialogSegment = true"
         title="Découpage en plusieurs fichiers de sortie"
     >
@@ -28,7 +28,9 @@
             <input #fileInput id="inputFile" accept=".csv" type="file" (change)="inputHandler($event)" [hidden]="true" />
         </button>
 
-        <button [disabled]="isNotExecutable" (click)="exportToCSV()">Exporter en CSV (UTF-8)</button>
+        <button [disabled]="isNotExecutable" (click)="exportToCSV()">
+            Exporter en CSV (UTF-8) <span *ngIf="segment > 0"> 0-{{ segment }}</span>
+        </button>
         <div class="switch_wrapper">
             <label>Voir le fichier de sortie</label>
 
@@ -52,31 +54,14 @@
 
     <input type="hidden" #selection />
     <!-- dialog header -->
-    <div class="dialog_wrapper" *ngIf="isDialogHeader" (click)="isDialogHeader = false; $event.stopPropagation()">
+    <div class="dialog_wrapper" *ngIf="isDialogHeader">
         <div id="dialHeader" class="dialog_header" (click)="$event.stopPropagation()">
             <div class="dialog_header_close" (click)="isDialogHeader = false; $event.stopPropagation()">Edition colonne</div>
             <label class="mt-8">Header label</label>
             <input type="text" [value]="selectedHeader" (change)="onChangeHeader($event)" />
             <label class="mt-16">Type de colonne</label>
             <select name="pets" id="pet-select" [value]="colonneType" (change)="onChangeColonneType($event)">
-                <option value="addressName">Adresse principale</option>
-                <option value="increment">Incrémentation</option>
-                <option value="keyValue">Key/Value</option>
-                <option value="">Non défini</option>
-                <option value="number">Numérique</option>
-                <option value="ouinon">Oui ou Non</option>
-                <option value="pays">Pays ISO Code</option>
-                <option value="siren">Siren</option>
-                <option value="siret">Siret</option>
-                <option value="tag510">Smart-Tag 510 caractères</option>
-                <option value="phone">Téléphone format international caractères</option>
-                <option value="txt32">Texte 32 caractères</option>
-                <option value="txt64">Texte 64 caractères</option>
-                <option value="txt100">Texte 100 caractères</option>
-                <option value="txt128">Texte 128 caractères</option>
-                <option value="txt255">Texte 255 caractères</option>
-                <option value="trueFalse">True/False</option>
-                <option value="yn">Y ou N</option>
+                <option *ngFor="let type of colType" [value]="type.value">{{ type.label }}</option>
             </select>
             <!-- Recherche depuis le header -->
             <div class="groupe">
@@ -109,7 +94,7 @@
         </div>
     </div>
     <!-- dialog type impport -->
-    <div class="dialog_wrapper" *ngIf="isDialogTypeImport" (click)="isDialogTypeImport = false; $event.stopPropagation()">
+    <div class="dialog_wrapper" *ngIf="isDialogTypeImport">
         <div id="dialHeader" class="dialog_header" (click)="$event.stopPropagation()">
             <div class="dialog_header_close" (click)="isDialogTypeImport = false; $event.stopPropagation()">Type d'import</div>
 
@@ -125,29 +110,30 @@
         </div>
     </div>
     <!-- dialog segmentation -->
-    <div class="dialog_wrapper" *ngIf="isDialogSegment" (click)="isDialogSegment = false; $event.stopPropagation()">
+    <div class="dialog_wrapper" *ngIf="isDialogSegment">
         <div id="isDialogSegment" class="dialog_header" (click)="$event.stopPropagation()">
             <div class="dialog_header_close" (click)="isDialogSegment = false; $event.stopPropagation()">Edition segmentation fichier</div>
             <label class="mt-8">Taille</label>
-            <input type="number" min="10" [value]="segmentTemp" (change)="onChangeSegment($event)" />
+            <input type="number" min="0" [value]="segmentTemp" (change)="onChangeSegment($event)" />
 
             <button (click)="segmentDialogApply()">Appliquer</button>
         </div>
     </div>
     <!-- dialog cellule -->
-    <div class="dialog_wrapper" *ngIf="isDialogCell" (click)="isDialogCell = false; $event.stopPropagation()">
+    <div class="dialog_wrapper" *ngIf="isDialogCell">
         <div id="isDialogCell" class="dialog_header" (click)="$event.stopPropagation()">
             <div class="dialog_header_close" (click)="isDialogCell = false; $event.stopPropagation()">Edition cellule</div>
             <label class="mt-8">Valeur</label>
-            <textarea type="text" (change)="onChangeCell($event)"
+            <textarea type="text" (input)="onChangeCell($event)" (change)="onChangeCell($event)"
                 >{{ celluleTemp }}
             </textarea>
+            <label>Taille : {{ celluleTemp.length }} caractères</label>
 
             <button (click)="cellDialogApply()">Appliquer</button>
         </div>
     </div>
     <!-- dialog keyvalue -->
-    <div class="dialog_wrapper" *ngIf="isDialogKeys" (click)="isDialogKeys = false; $event.stopPropagation()">
+    <div class="dialog_wrapper" *ngIf="isDialogKeys">
         <div id="isDialogKeys" class="dialog_header" (click)="$event.stopPropagation()">
             <div class="dialog_header_close" (click)="isDialogKeys = false; $event.stopPropagation()">
                 <div>Key / value label ({{ keyValue.length }})</div>
@@ -188,7 +174,7 @@
             <pre>Nbre de lignes : {{ nbreDeLignes }}</pre>
             <pre>segmentation: {{ segment }}</pre>
             <pre>encodage selectionné: {{ encodageSelected }}</pre>
-            <div class="p100 flex-end" *ngIf="encodageSelected">
+            <div class="p100 flex-end">
                 <select class="p100" name="pets" id="encode-select" [value]="encodageSelected" (change)="onChangeEncodage($event)">
                     <option *ngFor="let encoded of encodages" [value]="encoded.key">{{ encoded.value }}</option>
                 </select>
@@ -212,7 +198,7 @@
                         <td></td>
                         <ng-container *ngFor="let item of headers; let i = index">
                             <td (click)="openHeader(headers[i], i)">
-                                {{ getColonneType(allColonneType[i]) }}
+                                {{ getColType(i) }}
                             </td>
                         </ng-container>
                     </tr>
@@ -223,12 +209,7 @@
                                 <img src="https://icon-library.com/images/icon-delete/icon-delete-16.jpg" />
                             </td>
                             <ng-container *ngFor="let cell of entry; let j = index">
-                                <td
-                                    [ngClass]="{ edited: isEdited(i, j) }"
-                                    [title]="getInputCell(i, j)"
-                                    (click)="onEditCell(i, j)"
-                                    [title]="getTooltip(i, j)"
-                                >
+                                <td [ngClass]="{ edited: isEdited(i, j) }" (click)="onEditCell(i, j)" [title]="getTooltip(i, j, cell)">
                                     {{ cell }}
                                 </td>
                             </ng-container>

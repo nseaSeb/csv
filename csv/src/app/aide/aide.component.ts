@@ -7,7 +7,21 @@ import { Component, OnInit } from '@angular/core';
 })
 export class AideComponent implements OnInit {
     versions = [
-        { version: '0.8.5', description: `ajout exponentiel sur les champ numériques, ajout options siren / siret` },
+        { version: '0.8.94', description: `Suppression auto match car pénible à l'usage, correction indentation segment` },
+        { version: '0.8.93', description: `Correction Bug lecture fichier (readAsText)` },
+        {
+            version: '0.8.92',
+            description: `Correction Bug ajout colonne / affichage type de ligne / encodage undefined, ajout retirer lignes aux cellules vide.`,
+        },
+        { version: '0.8.91', description: `Correction Bug header` },
+        { version: '0.8.9', description: `Ajout split adresse (merci Juliette), amélioration matching type de colonnes` },
+        { version: '0.8.8', description: `Amélioration boolean, fix bugs divers, ajout matching type de colonnes` },
+        { version: '0.8.7', description: `Correctifs bug au changement du txt du header, correction bug segment` },
+        { version: '0.8.6', description: `Correctifs clic boite de dialogue` },
+        {
+            version: '0.8.5',
+            description: `ajout exponentiel sur les champ numériques, ajout options siren / siret, taille dans le tooltip cellule`,
+        },
         { version: '0.8.4', description: `Correctifs header, tooltip numéro de ligne sous la poubelle` },
         {
             version: '0.8.3',
