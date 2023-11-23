@@ -14,7 +14,7 @@ import { MatchingColumnsService } from './matching-columns.service';
 })
 export class AppComponent {
     title = 'csv';
-    version = '0.8.94 beta-carotene';
+    version = '0.8.97 Vuela vuela';
     about = 'Outil de manipulation / correction de fichiers CSV';
     filename = 'undefined';
     nbreDeLignes = 0;
@@ -90,7 +90,7 @@ export class AppComponent {
         { value: 'splitAddress', label: 'Split adresse' },
         { value: 'increment', label: 'Incrément' },
         { value: 'number', label: 'Numérique' },
-        { value: 'phone', label: 'Télphone' },
+        { value: 'phone', label: 'Téléphone' },
         { value: 'siren', label: 'Siren' },
         { value: 'siret', label: 'Siret' },
         { value: 'txt32', label: 'Texte 32 caractères' },
@@ -100,10 +100,13 @@ export class AppComponent {
         { value: 'txt255', label: 'Texte 255 caractères' },
         { value: 'tag510', label: 'Smart-tags' },
         { value: 'ouinon', label: 'Oui ou Non' },
+        { value: 'lowercase', label: 'miniscule' },
+        { value: 'uppercase', label: 'MAJUSCULE' },
         { value: 'trueFalse', label: 'True/False' },
         { value: 'yn', label: 'Y ou N' },
         { value: 'keyValue', label: 'Key/Value' },
         { value: 'removeEmpty', label: 'Retire les lignes aux cellules vides' },
+
     ];
     @ViewChild('myRefresh') myRefresh: ElementRef | undefined;
     constructor(
@@ -129,7 +132,6 @@ export class AppComponent {
             languageEncoding(file).then((fileInfo) => {
                 this.encodage = fileInfo.encoding || 'undefined';
                 this.uploadFile(e);
-                console.log(fileInfo);
             });
         } catch (error) {
             this.onLoader(false);
@@ -158,7 +160,7 @@ export class AppComponent {
             };
         }
     }
-    populateBuffers(matchCol = true) {
+    populateBuffers(matchCol = false) {
         this.onLoader(true);
         this.sommation = [];
         this.headers = [];
@@ -173,10 +175,10 @@ export class AppComponent {
         this.nbreDeLignes = this.datas.length;
 
         this.addSommation();
-        // if (matchCol) this.matchColumns();
+        if (matchCol) this.matchColumns();
         this.patchAllColonnes();
-        // this.autoCorrectHeader();
-        // this.autoCorrectDatas();
+        this.autoCorrectHeader();
+        this.autoCorrectDatas();
         this.onLoader(false);
     }
     initEncodage(): void {
@@ -241,27 +243,27 @@ export class AppComponent {
             this.allColonneType.push('');
         }
     }
-    // matchColumns(): void {
-    //     for (let i = 0; i < this.headers.length; i++) {
-    //         const item = this.matchColumnService.bestColumnMatching(this.headers[i].toLowerCase());
-    //         if (item) {
-    //             this.allColonneType[i] = item.settings;
-    //         }
-    //     }
-    // }
-    // autoCorrectHeader(): void {
-    //     for (let i = 0; i < this.headers.length; i++) {
-    //         this.headers[i] = this.autoCorrectString(this.headers[i]);
-    //     }
-    // }
-    // autoCorrectDatas(): void {
-    //     for (let i = 0; i < this.datas.length; i++) {
-    //         for (let j = 0; j < this.datas[i].length; j++) {
-    //             this.datas[i][j] = this.autoCorrectString(this.datas[i][j]);
-    //         }
-    //     }
-    //     this.onLoader(false);
-    // }
+    matchColumns(): void {
+        for (let i = 0; i < this.headers.length; i++) {
+            const item = this.matchColumnService.bestColumnMatching(this.headers[i].toLowerCase());
+            if (item) {
+                this.allColonneType[i] = item.settings;
+            }
+        }
+    }
+    autoCorrectHeader(): void {
+        for (let i = 0; i < this.headers.length; i++) {
+            this.headers[i] = this.autoCorrectString(this.headers[i]);
+        }
+    }
+    autoCorrectDatas(): void {
+        for (let i = 0; i < this.datas.length; i++) {
+            for (let j = 0; j < this.datas[i].length; j++) {
+                this.datas[i][j] = this.autoCorrectString(this.datas[i][j]);
+            }
+        }
+        this.onLoader(false);
+    }
     onLoader(onOff: boolean): void {
         if (onOff) {
             this.isLoaded = false;
@@ -274,29 +276,14 @@ export class AppComponent {
         }
     }
 
-    // autoCorrectString(value: string): string {
-    //     value = this.replaceAll(value, 'Ã©', 'é');
-    //     value = this.replaceAll(value, 'Â°', '°');
-    //     value = this.replaceAll(value, 'Ãª', 'ê');
-    //     value = this.replaceAll(value, 'à«', 'ë');
-    //     value = this.replaceAll(value, 'Ã¨', 'è');
-    //     value = this.replaceAll(value, `\'`, `'`);
-    //     value = this.replaceAll(value, `d\``, `d'`);
-    //     value = this.replaceAll(value, `l\'`, `l'`);
-    //     value = this.replaceAll(value, `à´`, `ô`);
-    //     value = this.replaceAll(value, 'Ã', 'à');
-    //     value = this.replaceAll(value, 'à§', 'ç');
-    //     value = this.replaceAll(value, 'â', `'`);
-    //     value = this.replaceAll(value, 'à¹', `ù`);
-    //     value = this.replaceAll(value, 'à´', `ô`);
-    //     value = this.replaceAll(value, 'â¬', `€`);
-    //     value = this.replaceAll(value, `'¦`, `...`);
-    //     value = this.replaceAll(value, `Â£`, `£`);
-    //     value = this.replaceAll(value, `Â¥`, `¥`);
-    //     value = this.replaceAll(value, '\xc3\x8e', `é`);
-
-    //     return value;
-    // }
+    autoCorrectString(value: string): string {
+        value = this.replaceAll(value, 'Ã©', 'é');
+        value = this.replaceAll(value, 'Â°', '°');
+        value = this.replaceAll(value, 'Ãª', 'ê');
+        value = this.replaceAll(value, 'à«', 'ë');
+        value = this.replaceAll(value, 'Ã¨', 'è');
+        return value;
+    }
 
     replaceAll(string, search, replace) {
         try {
@@ -401,7 +388,6 @@ export class AppComponent {
     }
     onChangeColonneType(e: any): void {
         this.colonneType = e.target.value;
-        console.log(this.colonneType);
     }
     onSelectColonneType(e: any, index: number): void {
         this.allColonneType[index] = e.target.value;
@@ -420,7 +406,6 @@ export class AppComponent {
     patchAllColonnes(): void {
         this.onLoader(true);
         this.count = this.compteur;
-        console.log(this.allColonneType);
         if (this.allColonneType.includes('splitAddress')) this.prepareSplitAddress();
         for (let i = 0; i < this.datas.length; i++) {
             for (let j = 0; j < this.datas[i].length; j++) {
@@ -434,7 +419,7 @@ export class AppComponent {
         }
     }
     prepareSplitAddress(): void {
-        console.log('prepareSplitAddress');
+
         if (!this.allColonneType.includes('address1')) {
             this.addColumn('Adresse partie 1');
             this.allColonneType.push('address1');
@@ -462,7 +447,7 @@ export class AppComponent {
         let value = String(this.datas[index][indexTel]);
         let num = (value.match(/[+\d\.]+/g) as string[]) || ['0'];
         value = num?.join('') as string;
-
+        if (value.length == 9) value = '0' + value;
         if (value.length > 4) {
             switch (Array.from(value)[0]) {
                 case '+':
@@ -552,6 +537,12 @@ export class AppComponent {
                 break;
             case 'increment':
                 return this.pushIncrement(value);
+                break;
+            case 'lowercase':
+                return this.lowercase(value);
+                break;
+            case 'uppercase':
+                return this.uppercase(value);
                 break;
             default:
                 return value;
@@ -646,6 +637,12 @@ export class AppComponent {
             return value;
         }
     }
+    lowercase(value: string): string {
+        return value.toLowerCase();
+    }
+    uppercase(value: string): string {
+        return value.toUpperCase();
+    }
     patchAdressName(value: string, index): string {
         const city = this.datas[index][this.allColonneType.indexOf('city')];
         const zipCode = this.datas[index][this.allColonneType.indexOf('zipCode')];
@@ -691,17 +688,13 @@ export class AppComponent {
     }
     getStringAsNumber(value: any): any {
         //const retour = value.replace(/^\D+/g, '');
-        console.log('original', value);
 
         const numb = Number(value);
         const exponent = this.noExponents(Number(value));
-        console.log('exponent', exponent);
         if (!isNaN(Number(exponent))) {
-            console.log('is not nan');
             return exponent;
         } else {
             value = String(value);
-            console.log('string', value);
             value = value.replace(',', '.');
             let retour = '0';
             try {
@@ -731,6 +724,7 @@ export class AppComponent {
                 }
             }
         }
+        this.onLoader(false)
     }
     getInputCell(indexLigne: number, indexCell: number): string {
         return String(this.inputDatas[indexLigne][indexCell]);
@@ -778,7 +772,7 @@ export class AppComponent {
         this.headers.splice(this.headers.length + 1, 0, name);
     }
     removeColumnAt(index: number): void {
-        for (let i = 0; i < this.datas.length; i++) {
+        for (let i = 0; i <= this.datas.length; i++) {
             this.fileDatas[i].splice(index, 1);
         }
         this.populateBuffers();
@@ -797,5 +791,8 @@ Taille : ${cell.length} caractères.`;
     }
     showHelp(): void {
         this.isHelp = true;
+    }
+    copyToClipboard(val): void {
+        navigator.clipboard.writeText(val)
     }
 }

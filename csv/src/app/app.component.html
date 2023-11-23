@@ -123,7 +123,10 @@
     <div class="dialog_wrapper" *ngIf="isDialogCell">
         <div id="isDialogCell" class="dialog_header" (click)="$event.stopPropagation()">
             <div class="dialog_header_close" (click)="isDialogCell = false; $event.stopPropagation()">Edition cellule</div>
-            <label class="mt-8">Valeur</label>
+            <div class="flex_bar">
+                <label class="mt-8">Valeur</label>
+                <img class="icon_bton" (click)="copyToClipboard(celluleTemp)" title="Copier dans le presse papier" src="https://www.svgrepo.com/show/309480/copy.svg" />
+            </div>
             <textarea type="text" (input)="onChangeCell($event)" (change)="onChangeCell($event)"
                 >{{ celluleTemp }}
             </textarea>
@@ -183,7 +186,7 @@
     </div>
 
     <div class="card-container">
-        <div class="table-wrapper" *ngIf="showOutput && datas.length > 1">
+        <div class="table-wrapper" *ngIf="showOutput && datas.length != 0">
             <div class="table-scroll">
                 <table>
                     <tr>

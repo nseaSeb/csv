@@ -7,6 +7,9 @@ import { Component, OnInit } from '@angular/core';
 })
 export class AideComponent implements OnInit {
     versions = [
+        { version: '0.8.97', description: `Ouvre désormais si 1 seule ligne, suppression de logs` },
+        { version: '0.8.96', description: `Amélioration Tel, ajout minuscule / majuscule, copier cellule dans le presse papier` },
+        { version: '0.8.95', description: `Correction bug` },
         { version: '0.8.94', description: `Suppression auto match car pénible à l'usage, correction indentation segment` },
         { version: '0.8.93', description: `Correction Bug lecture fichier (readAsText)` },
         {
@@ -58,7 +61,12 @@ export class AideComponent implements OnInit {
         { version: '0.1.2', description: `Encodage UTF-8 du fichier de sortie` },
         { version: '0.1.1', description: `Implémentation orignale de l'application` },
     ];
+    needVuela =false;
     constructor() {}
 
-    ngOnInit(): void {}
+    ngOnInit(): void {
+        setTimeout(() => {
+            this.needVuela = true;
+        }, 7777);
+    }
 }
