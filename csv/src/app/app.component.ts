@@ -6,7 +6,7 @@ import languageEncoding from 'detect-file-encoding-and-language';
 import * as iconvlite from 'iconv-lite';
 import * as buffer from 'buffer';
 import { MatchingColumnsService } from './matching-columns.service';
-
+import { JsonLoaderService } from './department.service';
 @Component({
     selector: 'app-root',
     templateUrl: './app.component.html',
@@ -14,7 +14,7 @@ import { MatchingColumnsService } from './matching-columns.service';
 })
 export class AppComponent {
     title = 'csv';
-    version = '0.8.97 Vuela vuela';
+    version = '0.9.00 Vuela vuela';
     about = 'Outil de manipulation / correction de fichiers CSV';
     filename = 'undefined';
     nbreDeLignes = 0;
@@ -28,7 +28,7 @@ export class AppComponent {
 
     datas: any[] = []; //view datas
     fileDatas: any[] = []; // fichier
-    inputDatas: any[] = []; // buffer
+   // datas: any[] = []; // buffer
 
     headers: string[] = [];
     inputHeaders: string[] = [];
@@ -67,12 +67,35 @@ export class AppComponent {
         { key: 'cesu8', value: 'cesu8', decode: 'cesu8' },
         { key: 'cp950', value: 'cp950', decode: 'cp950' },
         { key: 'cp932', value: 'cp932', decode: 'cp932' },
+        { key: 'cp936', value: 'cp936', decode: 'cp936' },
+        { key: 'cp437', value: 'cp437', decode: 'cp437' },
+        { key: 'cp949', value: 'cp949', decode: 'cp949' },
+        { key: 'cp1250', value: 'cp1250', decode: 'cp1250' },
+        { key: 'windows1250', value: 'windows1250', decode: 'windows1250' },
+        { key: 'windows1252', value: 'windows1252', decode: 'windows1252' },
+        { key: 'windows1253', value: 'windows1253', decode: 'windows1253' },
+        { key: 'windows1254', value: 'windows1254', decode: 'windows1254' },
+        { key: 'windows1255', value: 'windows1255', decode: 'windows1255' },
+        { key: 'windows1256', value: 'windows1256', decode: 'windows1256' },
+        { key: 'windows1257', value: 'windows1257', decode: 'windows1257' },
+        { key: 'windows1258', value: 'windows1258', decode: 'windows1258' },
+        { key: 'big5hkscs', value: 'big5hkscs', decode: 'big5hkscs' },
         { key: 'ISO-8859-1', value: 'ISO-8859-1', decode: 'ISO-8859-1' },
         { key: 'ISO-8859-16', value: 'ISO-8859-16', decode: 'ISO-8859-16' },
+        { key: 'iso88591', value: 'iso88591', decode: 'iso88591' },
+        { key: 'iso88592', value: 'iso88592', decode: 'iso88592' },
+        { key: 'iso88593', value: 'iso88593', decode: 'iso88593' },
+        { key: 'iso88594', value: 'iso88594', decode: 'iso88594' },
         { key: 'iso88595', value: 'iso88595', decode: 'iso88595' },
+        { key: 'iso88596', value: 'iso88596', decode: 'iso88596' },
+        { key: 'iso88597', value: 'iso88597', decode: 'iso88597' },
+        { key: 'iso88598', value: 'iso88598', decode: 'iso88598' },
+        { key: 'iso88599', value: 'iso88599', decode: 'iso88599' },
+        { key: 'iso885910', value: 'iso885910', decode: 'iso885910' },
         { key: 'GBK', value: 'GBK', decode: 'GBK' },
         { key: 'GB2312', value: 'GB2312', decode: 'GB2312' },
         { key: 'ASCII', value: 'ascii', decode: 'ascii' },
+        { key: 'viscii', value: 'viscii', decode: 'viscii' },
         { key: 'hex', value: 'Hexadecimal', decode: 'hex' },
         { key: 'base64', value: 'base64', decode: 'base64' },
         { key: 'macintosh', value: 'macintosh', decode: 'macintosh' },
@@ -114,6 +137,7 @@ export class AppComponent {
         private _csvExport: ExportCsvService,
         private pays: PaysCorrectionService,
         private matchColumnService: MatchingColumnsService,
+        private insee: JsonLoaderService
     ) {
         const val = localStorage.getItem('keyValue');
         if (val) {
@@ -150,7 +174,7 @@ export class AppComponent {
                 this.csvParse.parseCsvFile(content.toString(), this.encodage).then((result) => {
                     this.fileDatas = [...result.data];
                     //console.log(this.fileDatas);
-                    // this.inputDatas = [];
+                    // this.datas = [];
                     // this.datas = [];
                     const selVal = this.encodages.find((item) => item.key === this.encodage);
                     this.initEncodage();
@@ -165,12 +189,12 @@ export class AppComponent {
         this.sommation = [];
         this.headers = [];
         this.datas = [];
-        this.inputDatas = [];
+       // this.datas = [];
         this.inputHeaders = [];
-        this.inputDatas = JSON.parse(JSON.stringify(this.fileDatas));
+        this.datas = JSON.parse(JSON.stringify(this.fileDatas));
         this.autoCorrectEncodage();
-        this.datas = JSON.parse(JSON.stringify(this.inputDatas));
-        this.inputHeaders = this.inputDatas.shift() || [];
+        //this.datas = JSON.parse(JSON.stringify(this.datas));
+       // this.inputHeaders = this.datas.shift() || [];
         this.headers = this.datas.shift() || [];
         this.nbreDeLignes = this.datas.length;
 
@@ -201,7 +225,7 @@ export class AppComponent {
                     try {
                         const bufferData = buffer.Buffer.from(String(this.fileDatas[i][j]).trim());
                         const str = iconvlite.decode(bufferData, selVal.decode);
-                        this.inputDatas[i][j] = str;
+                        this.datas[i][j] = str;
                     } catch (error) {
                         console.log('decoded ERROR : ', error);
                     }
@@ -275,7 +299,11 @@ export class AppComponent {
             }, 400);
         }
     }
-
+    onRefresh(): void {
+    this.patchAllColonnes();
+    this.sumAllColonnes();
+    this.isLoaded = false;
+    }
     autoCorrectString(value: string): string {
         value = this.replaceAll(value, 'Ã©', 'é');
         value = this.replaceAll(value, 'Â°', '°');
@@ -301,16 +329,22 @@ export class AppComponent {
         this.selectedHeader = header;
     }
     headerDialogApply(): void {
-        this.headers[this.selectedIndex] = this.selectedHeader;
-        this.inputHeaders[this.selectedIndex] = this.selectedHeader;
-        if (this.replaceField) {
-            this.onReplace();
-        }
-        this.allColonneType[this.selectedIndex] = this.colonneType;
-        this.patchAllColonnes();
         this.isDialogHeader = false;
         this.isDialogTypeImport = false;
-        this.sumAllColonnes();
+        this.headers[this.selectedIndex] = this.selectedHeader;
+        this.inputHeaders[this.selectedIndex] = this.selectedHeader;
+        if (this.replaceField || this.searchField) {
+            this.onReplace();
+        }
+        this.applyColonneType();
+     
+         this.patchAllColonnes();
+         this.sumAllColonnes();
+    }
+    applyColonneType():void {
+        this.allColonneType[this.selectedIndex] = this.colonneType;
+        console.log("allColonneType");
+        console.log(this.allColonneType);
     }
     onChangeHeader(e: any): void {
         this.selectedHeader = e.target.value;
@@ -333,18 +367,30 @@ export class AppComponent {
         //this.patchAllColonnes();
     }
     onReplace(): void {
+        console.log("onReplace");
+        console.log(this.searchField);
+        console.log(this.replaceField);
+        console.log(this.selectedIndex);
+
         if (this.searchField !== '') {
             for (let i = 0; i < this.datas.length; i++) {
-                this.inputDatas[i][this.selectedIndex] = this.replaceAll(
-                    this.datas[i][this.selectedIndex],
-                    this.searchField,
-                    this.replaceField,
-                );
+                if (this.datas[i][this.selectedIndex] === this.searchField) {
+                    console.log("find and replace")
+                    this.datas[i][this.selectedIndex] = this.replaceField;
+                   // this.datas[i][this.selectedIndex] = this.replaceField;
+                }
+                // this.datas[i][this.selectedIndex] = this.replaceAll(
+                //     this.datas[i][this.selectedIndex],
+                //     this.searchField,
+                //     this.replaceField,
+                // );
             }
         } else {
             for (let i = 0; i < this.datas.length; i++) {
                 if (this.datas[i][this.selectedIndex] === '') {
-                    this.inputDatas[i][this.selectedIndex] = this.replaceField;
+                    console.log("replace")
+                    this.datas[i][this.selectedIndex] = this.replaceField;
+                  //  this.datas[i][this.selectedIndex] = this.replaceField;
                 }
             }
         }
@@ -380,14 +426,19 @@ export class AppComponent {
     }
 
     segmentDialogApply(): void {
-        this.segment = this.segmentTemp;
         this.isDialogSegment = false;
+        this.segment = this.segmentTemp;
     }
     onChangeCell(e: any): void {
         this.celluleTemp = e.target.value.trim();
     }
     onChangeColonneType(e: any): void {
         this.colonneType = e.target.value;
+    }
+    onChangeColonneTypeWithIndex(e: any, index: number): void {
+        this.colonneType = e.target.value;
+        this.selectedIndex = index;
+        console.log('change colonne type at index : ' + index);
     }
     onSelectColonneType(e: any, index: number): void {
         this.allColonneType[index] = e.target.value;
@@ -404,14 +455,19 @@ export class AppComponent {
     }
 
     patchAllColonnes(): void {
+        console.log("patchAllColonnes");
         this.onLoader(true);
         this.count = this.compteur;
         if (this.allColonneType.includes('splitAddress')) this.prepareSplitAddress();
         for (let i = 0; i < this.datas.length; i++) {
             for (let j = 0; j < this.datas[i].length; j++) {
-                this.datas[i][j] = this.patchColonne(this.inputDatas[i][j], this.allColonneType[j], i);
+                if (this.allColonneType[j]){
+                    console.log(this.allColonneType[j]);
+                    this.datas[i][j] = this.patchColonne(this.datas[i][j], this.allColonneType[j], i);
+                }
             }
         }
+
         if (this.allColonneType.findIndex((item) => item === 'phone') !== -1) {
             for (let i = 0; i < this.datas.length; i++) {
                 this.patchPhones(i);
@@ -441,10 +497,13 @@ export class AppComponent {
     //     return this.allColonneType.findIndex((item) => item === 'pays') === -1;
     // }
     patchPhones(index: number): void {
-        const indexTel = this.allColonneType.findIndex((item) => item === 'phone');
+        for (let i = 0; i < this.allColonneType.length; i++) {
+            if (this.allColonneType[i] === 'phone') {
+
+        // const indexTel = this.allColonneType.findIndex((item) => item === 'phone');
         const indexPays = this.allColonneType.findIndex((item) => item === 'pays');
 
-        let value = String(this.datas[index][indexTel]);
+        let value = String(this.datas[index][i]);
         let num = (value.match(/[+\d\.]+/g) as string[]) || ['0'];
         value = num?.join('') as string;
         if (value.length == 9) value = '0' + value;
@@ -469,16 +528,18 @@ export class AppComponent {
             }
 
             if (indexPays === -1) {
-                this.datas[index][indexTel] = value;
+                this.datas[index][i] = value;
             } else {
                 const pays = this.pays.iso.find((item) => item.iso === this.datas[index][indexPays]);
                 if (pays && value.length > 4) {
-                    this.datas[index][indexTel] = pays.indicatif + value.slice(-9);
+                    this.datas[index][i] = pays.indicatif + value.slice(-9);
                 }
             }
         }
+    }}
     }
     patchColonne(value: string, type: string, index: number): string {
+    
         switch (type) {
             case 'number':
                 return this.getStringAsNumber(value);
@@ -544,25 +605,57 @@ export class AppComponent {
             case 'uppercase':
                 return this.uppercase(value);
                 break;
+            case 'city':
+                return this.patchVille(value, index)
+                break;
+            case 'zipCode':
+                return this.patchZipCode(value, index)
+                break;
             default:
                 return value;
                 break;
         }
+    }
+    patchVille(value: string, index: number): string {
+        if (value === '') {
+            const zipcode = this.datas[index][this.allColonneType.indexOf('zipCode')];
+            const commune = this.insee.getCityByPostalCode(zipcode);
+            if (commune){
+                return  commune.Nom_commune;
+            }
+        }
+        return value;
+    }
+    patchZipCode(value: string, index: number): string {
+        console.log("patchZipCode" + index);
+        console.log("value" + value);
+        if (value === '') {
+            const commune = this.datas[index][this.allColonneType.indexOf('city')];
+            console.log("commune" + commune);
+            if (commune){
+            const zipCode = this.insee.getPostalCodeByCity(commune.toUpperCase().trim());
+            console.log("zip" + zipCode);
+            if (zipCode){
+                return  String(zipCode.Code_postal);
+            }
+        }
+        }
+        return value;
     }
     patchSplitAddress(value: string, index: number): void {
         if (value.trim()) {
             try {
                 const addressArray = this.matchColumnService.splitAdresse(value);
                 if (addressArray[0]) {
-                    this.inputDatas[index][this.allColonneType.indexOf('address1')] = String(addressArray[0]);
                     this.datas[index][this.allColonneType.indexOf('address1')] = String(addressArray[0]);
-                    this.inputDatas[index][this.allColonneType.indexOf('zipCode')] = String(addressArray[2][0]);
+                    this.datas[index][this.allColonneType.indexOf('address1')] = String(addressArray[0]);
                     this.datas[index][this.allColonneType.indexOf('zipCode')] = String(addressArray[2][0]);
-                    this.inputDatas[index][this.allColonneType.indexOf('city')] = String(addressArray[1]);
+                    this.datas[index][this.allColonneType.indexOf('zipCode')] = String(addressArray[2][0]);
+                    this.datas[index][this.allColonneType.indexOf('city')] = String(addressArray[1]);
                     this.datas[index][this.allColonneType.indexOf('city')] = String(addressArray[1]);
                     const indexName = this.allColonneType.indexOf('addressName');
-                    if (this.inputDatas[index][indexName].length < 1) {
-                        this.inputDatas[index][indexName] = 'Adresse principale';
+                    if (this.datas[index][indexName].length < 1) {
+                        this.datas[index][indexName] = 'Adresse principale';
                         this.datas[index][indexName] = 'Adresse principale';
                     }
                 }
@@ -689,8 +782,11 @@ export class AppComponent {
     getStringAsNumber(value: any): any {
         //const retour = value.replace(/^\D+/g, '');
 
-        const numb = Number(value);
+        // const numb = Number(value);
+        //console.log(numb);
         const exponent = this.noExponents(Number(value));
+        // console.log(exponent);
+
         if (!isNaN(Number(exponent))) {
             return exponent;
         } else {
@@ -727,7 +823,7 @@ export class AppComponent {
         this.onLoader(false)
     }
     getInputCell(indexLigne: number, indexCell: number): string {
-        return String(this.inputDatas[indexLigne][indexCell]);
+        return String(this.datas[indexLigne][indexCell]);
     }
     onEditCell(indexLigne: number, indexCell: number): void {
         this.selectedLigneIndex = indexLigne;
@@ -738,9 +834,9 @@ export class AppComponent {
         this.isDialogCell = true;
     }
     cellDialogApply(): void {
-        this.datas[this.selectedLigneIndex][this.selectedCellIndex] = this.celluleTemp;
-        this.inputDatas[this.selectedLigneIndex][this.selectedCellIndex] = this.celluleTemp;
         this.isDialogCell = false;
+        this.datas[this.selectedLigneIndex][this.selectedCellIndex] = this.celluleTemp;
+        this.datas[this.selectedLigneIndex][this.selectedCellIndex] = this.celluleTemp;
     }
 
     onAddColumnAfter() {
@@ -765,8 +861,8 @@ export class AppComponent {
     }
     addColumn(name: string): void {
         for (let i = 0; i < this.datas.length; i++) {
-            this.inputDatas[i].splice(this.inputDatas[i].length + 1, 0, '');
             this.datas[i].splice(this.datas[i].length + 1, 0, '');
+          //  this.datas[i].splice(this.datas[i].length + 1, 0, '');
         }
         this.inputHeaders.splice(this.headers.length + 1, 0, name);
         this.headers.splice(this.headers.length + 1, 0, name);

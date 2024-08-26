@@ -173,6 +173,18 @@ svg.material-icons:not(:last-child) {
   margin-left: 60px;
 }
 
+.label-over {
+  position: block;
+  top: 12px;
+  left: 4px;
+  min-width: 184px;
+  background: black !important;
+  color: aquamarine !important;
+  padding: 4px;
+  border-radius: 4px;
+
+}
+
 svg#rocket {
   width: 80px;
   position: absolute;

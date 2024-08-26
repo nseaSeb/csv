@@ -7,6 +7,9 @@ import { Component, OnInit } from '@angular/core';
 })
 export class AideComponent implements OnInit {
     versions = [
+        { version: '0.9.00', description: `Ajout base INSEE, correction commune / code postal` },
+        { version: '0.8.99', description: `Correction de bug` },
+        { version: '0.8.98', description: `Correction de bug` },
         { version: '0.8.97', description: `Ouvre désormais si 1 seule ligne, suppression de logs` },
         { version: '0.8.96', description: `Amélioration Tel, ajout minuscule / majuscule, copier cellule dans le presse papier` },
         { version: '0.8.95', description: `Correction bug` },

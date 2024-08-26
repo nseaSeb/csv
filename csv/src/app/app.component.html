@@ -15,8 +15,9 @@
     <button class="card card-small" (click)="isDialogKeys = true; selectedIndex = -1" title="table de correspondance clé / valeur">
         <span>Table de key / value </span>
     </button>
-    <button class="card card-small" (click)="patchAllColonnes()" title="Rafraichissement de la page">
-        <span><img #myRefresh src="https://cdn-icons-png.flaticon.com/512/61/61444.png" /></span>
+    <button class="card card-small" (click)="onRefresh()" [disabled]="datas.length == 0" title="Rafraichissement de la page">
+        Refresh
+        <span style="margin-left: 8px;"><img #myRefresh src="https://cdn-icons-png.flaticon.com/512/61/61444.png" /></span>
     </button>
 </div>
 <div class="content" role="main">
@@ -199,9 +200,16 @@
                     </tr>
                     <tr class="colonne-type">
                         <td></td>
-                        <ng-container *ngFor="let item of headers; let i = index">
-                            <td (click)="openHeader(headers[i], i)">
-                                {{ getColType(i) }}
+                        <ng-container *ngFor="let item of allColonneType; let i = index">
+                            <td>
+                                <div class="label-over">
+                                    {{ getColType(i) }}
+                                </div>
+    
+                                    <select style="margin: 0; margin-top: -30px;display: block;  opacity: 0;" name="pets" id="pet-select" [value]="item" (change)="onChangeColonneTypeWithIndex($event, i);applyColonneType();">
+                                        <option *ngFor="let type of colType" [value]="type.value">{{ type.label }}</option>
+                                    </select>
+
                             </td>
                         </ng-container>
                     </tr>
@@ -236,7 +244,7 @@
                             <th>{{ item }}</th>
                         </ng-container>
                     </tr>
-                    <ng-container *ngFor="let entry of inputDatas; let lineIndex = index">
+                    <ng-container *ngFor="let entry of datas; let lineIndex = index">
                         <tr>
                             <ng-container *ngFor="let cell of entry; let cellIndex = index">
                                 <td>{{ cell }}</td>
